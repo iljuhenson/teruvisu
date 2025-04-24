@@ -43,7 +43,21 @@ impl<'a> Sudoku<'a> {
     pub fn generate(uncovered_cells_amount: u8) -> Self {
         let mut sudoku = Self::build_empty();
 
+        sudoku.fill_randomly();
+
         sudoku
+    }
+
+    fn fill_randomly(&mut self) {
+        let mut is_filled = false;
+
+        while !is_filled {
+            is_filled = true;
+
+            for x in 0..9 {
+                for y in 0..9 {}
+            }
+        }
     }
 
     fn build_empty() -> Self {
@@ -63,15 +77,15 @@ impl<'a> Sudoku<'a> {
         sudoku
     }
 
-    pub fn get_value(&self, pos: CellPos) -> Result<Option<u8>, &'static str> {
+    pub fn get_value(&self, pos: &CellPos) -> Result<Option<u8>, &'static str> {
         Ok(self.grid[pos.x][pos.y].value)
     }
 
-    pub fn get_note(&self, pos: CellPos) -> Result<&'a str, &'static str> {
+    pub fn get_note(&self, pos: &CellPos) -> Result<&'a str, &'static str> {
         Ok(self.grid[pos.x][pos.y].note)
     }
 
-    pub fn set_value(&mut self, pos: CellPos, value: u8) -> Result<(), &'static str> {
+    pub fn set_value(&mut self, pos: &CellPos, value: u8) -> Result<(), &'static str> {
         if value < 1 && value > 9 {
             return Err("Provided value is not in range 1..=9");
         }
@@ -81,35 +95,35 @@ impl<'a> Sudoku<'a> {
         Ok(())
     }
 
-    pub fn unset_value(&mut self, pos: CellPos) -> Result<(), &'static str> {
+    pub fn unset_value(&mut self, pos: &CellPos) -> Result<(), &'static str> {
         self.grid[pos.x][pos.y].value = None;
 
         Ok(())
     }
 
-    pub fn set_note<'b: 'a>(&mut self, pos: CellPos, note: &'b str) -> Result<(), &'static str> {
+    pub fn set_note<'b: 'a>(&mut self, pos: &CellPos, note: &'b str) -> Result<(), &'static str> {
         self.grid[pos.x][pos.y].note = note;
 
         Ok(())
     }
 
-    //fn calculate_available_values_for(&self, pos: CellPos) -> Vec<u8> {
-    //    let mut available_value = HashSet::from([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    //}
+    fn available_values_for(&self, pos: &CellPos) -> Vec<u8> {
+        let mut available_values = HashSet::from([1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8]);
 
-    fn column_values_for(&self, pos: CellPos) -> Vec<u8> {
-        let mut values: Vec<u8> = Vec::with_capacity(9);
+        self.column_values_for(pos).iter().for_each(|v| {
+            available_values.remove(v);
+        });
+        self.row_values_for(pos).iter().for_each(|v| {
+            available_values.remove(v);
+        });
+        self.minisquare_values_for(pos).iter().for_each(|v| {
+            available_values.remove(v);
+        });
 
-        for y in 0..9 {
-            if let Some(value) = self.grid[pos.x][y].value {
-                values.push(value);
-            }
-        }
-
-        values
+        available_values.into_iter().collect()
     }
 
-    fn row_values_for(&self, pos: CellPos) -> Vec<u8> {
+    fn column_values_for(&self, pos: &CellPos) -> Vec<u8> {
         let mut values: Vec<u8> = Vec::with_capacity(9);
 
         for x in 0..9 {
@@ -121,7 +135,19 @@ impl<'a> Sudoku<'a> {
         values
     }
 
-    fn minisquare_values_for(&self, pos: CellPos) -> Vec<u8> {
+    fn row_values_for(&self, pos: &CellPos) -> Vec<u8> {
+        let mut values: Vec<u8> = Vec::with_capacity(9);
+
+        for y in 0..9 {
+            if let Some(value) = self.grid[pos.x][y].value {
+                values.push(value);
+            }
+        }
+
+        values
+    }
+
+    fn minisquare_values_for(&self, pos: &CellPos) -> Vec<u8> {
         let bounds = Self::calculate_minisquare_bounds(pos);
         let mut values: Vec<u8> = Vec::with_capacity(9);
 
@@ -136,7 +162,7 @@ impl<'a> Sudoku<'a> {
         values
     }
 
-    fn calculate_minisquare_bounds(pos: CellPos) -> MiniSquareBounds {
+    fn calculate_minisquare_bounds(pos: &CellPos) -> MiniSquareBounds {
         let top_left_x = pos.x / 3 * 3;
         let top_left_y = pos.y / 3 * 3;
 
@@ -155,15 +181,15 @@ impl<'a> Sudoku<'a> {
         }
     }
 
-    //fn is_row_valid_for(pos: CellPos) -> bool {
+    //fn is_row_valid_for(pos: &CellPos) -> bool {
     //    false
     //}
     //
-    //fn is_column_valid_for(pos: CellPos) -> bool {
+    //fn is_column_valid_for(pos: &CellPos) -> bool {
     //    false
     //}
     //
-    //fn is_minisquare_valid_for(pos: CellPos) -> bool {
+    //fn is_minisquare_valid_for(pos: &CellPos) -> bool {
     //    false
     //}
 }
@@ -243,7 +269,7 @@ mod tests {
     #[test]
     fn correctly_calculates_minisquare_bounds() {
         let pos = CellPos::build(1, 4).unwrap();
-        let result = Sudoku::calculate_minisquare_bounds(pos);
+        let result = Sudoku::calculate_minisquare_bounds(&pos);
 
         assert_eq!(
             MiniSquareBounds {
@@ -254,7 +280,7 @@ mod tests {
         );
 
         let pos = CellPos::build(8, 8).unwrap();
-        let result = Sudoku::calculate_minisquare_bounds(pos);
+        let result = Sudoku::calculate_minisquare_bounds(&pos);
 
         assert_eq!(
             MiniSquareBounds {
@@ -282,7 +308,7 @@ mod tests {
         ]);
         let pos = CellPos { x: 8, y: 4 };
 
-        let mut result = sudoku.minisquare_values_for(pos);
+        let mut result = sudoku.minisquare_values_for(&pos);
         result.sort();
         assert_eq!(result, vec![1, 2, 5, 9]);
     }
@@ -302,11 +328,11 @@ mod tests {
             vec![0, 0, 0, /*|*/ 5, 2, 0, /*|*/ 0, 0, 0],
             vec![0, 0, 0, /*|*/ 1, 0, 9, /*|*/ 0, 0, 0],
         ]);
-        let pos = CellPos { x: 7, y: 2 };
+        let pos = CellPos { x: 2, y: 3 };
 
-        let mut result = sudoku.column_values_for(pos);
+        let mut result = sudoku.column_values_for(&pos);
         result.sort();
-        assert_eq!(result, vec![2, 5]);
+        assert_eq!(result, vec![1, 5]);
     }
 
     #[test]
@@ -324,10 +350,51 @@ mod tests {
             vec![0, 0, 0, /*|*/ 5, 2, 0, /*|*/ 0, 0, 0],
             vec![0, 0, 0, /*|*/ 1, 0, 9, /*|*/ 0, 0, 0],
         ]);
-        let pos = CellPos { x: 8, y: 3 };
+        let pos = CellPos { x: 7, y: 2 };
 
-        let mut result = sudoku.row_values_for(pos);
+        let mut result = sudoku.row_values_for(&pos);
         result.sort();
-        assert_eq!(result, vec![1, 5]);
+        assert_eq!(result, vec![2, 5]);
+    }
+
+    #[test]
+    fn correctly_finds_available_values_for_specified_cell() {
+        let sudoku = build_sudoku_from(vec![
+            vec![0, 0, 0, /*|*/ 0, 0, 0, /*|*/ 0, 0, 0],
+            vec![0, 0, 0, /*|*/ 0, 1, 0, /*|*/ 0, 0, 0],
+            vec![0, 0, 0, /*|*/ 0, 0, 0, /*|*/ 0, 0, 0],
+            /*----------------------------------------*/
+            vec![0, 0, 0, /*|*/ 0, 0, 0, /*|*/ 0, 0, 0],
+            vec![0, 0, 0, /*|*/ 0, 0, 0, /*|*/ 0, 0, 0],
+            vec![0, 0, 0, /*|*/ 0, 3, 0, /*|*/ 0, 0, 0],
+            /*----------------------------------------*/
+            vec![0, 0, 0, /*|*/ 0, 0, 0, /*|*/ 0, 0, 0],
+            vec![0, 0, 0, /*|*/ 5, 2, 0, /*|*/ 0, 0, 0],
+            vec![0, 0, 8, /*|*/ 1, 0, 9, /*|*/ 0, 0, 0],
+        ]);
+        let pos = CellPos { x: 8, y: 4 };
+
+        let mut result = sudoku.available_values_for(&pos);
+        result.sort();
+        assert_eq!(result, vec![4u8, 6u8, 7u8]);
+
+        let sudoku = build_sudoku_from(vec![
+            vec![0, 0, 0, /*|*/ 0, 0, 0, /*|*/ 0, 0, 0],
+            vec![0, 0, 0, /*|*/ 0, 0, 0, /*|*/ 0, 0, 0],
+            vec![0, 0, 0, /*|*/ 7, 0, 3, /*|*/ 0, 0, 0],
+            /*----------------------------------------*/
+            vec![0, 1, 0, /*|*/ 2, 0, 4, /*|*/ 0, 0, 0],
+            vec![0, 0, 0, /*|*/ 0, 0, 0, /*|*/ 0, 0, 0],
+            vec![0, 2, 0, /*|*/ 3, 0, 9, /*|*/ 0, 0, 0],
+            /*----------------------------------------*/
+            vec![0, 3, 6, /*|*/ 0, 0, 0, /*|*/ 0, 0, 0],
+            vec![0, 0, 0, /*|*/ 0, 0, 0, /*|*/ 0, 0, 0],
+            vec![0, 0, 0, /*|*/ 0, 0, 0, /*|*/ 0, 0, 0],
+        ]);
+        let pos = CellPos { x: 8, y: 4 };
+
+        let mut result = sudoku.available_values_for(&pos);
+        result.sort();
+        assert_eq!(result, vec![1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8]);
     }
 }
